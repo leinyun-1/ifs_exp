@@ -1,0 +1,457 @@
+[abstract]
+ifs refactoring version
+[description]
+refactoring version
+[args]
+description refactoring version
+
+[task dep args]
+device cuda:0
+epochs 500
+chkpt_milestones [100, 200, 500]
+sch_epoch [100, 200, 500]
+tr_batch_size 1
+batchs_in_step 16
+num_workers 16
+lr 0.001
+lr_weight_decay 0
+sch_gamma 0.1
+apply_weight_init True
+seed 17
+topic 0714_ifs, 0712_ifs 失败后后继。按pifu改进了多视角机制：1.叠加视角内z。2.换mean为flatten
+abstract ifs refactoring version
+best_performance 0.01
+
+[localonly args]
+path_record ../result-records
+path_logs ../logs
+path_chkpt ../checkpoints
+path_initmodel ../initmodels
+path_images ../images
+path_of_ifs /dockerdata/thuman2 /dockerdata/grid_samples_64_12
+
+[model]
+IFSNet(
+  (encoder): HGFilter(
+    (conv1): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+    (conv1_n): Conv2d(3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+    (bn1): GroupNorm(32, 64, eps=1e-05, affine=True)
+    (conv2): ConvBlock(
+      (conv1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv2): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv3): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn2): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn3): GroupNorm(32, 32, eps=1e-05, affine=True)
+      (bn4): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (downsample): Sequential(
+        (0): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (1): ReLU(inplace=True)
+        (2): Conv2d(64, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      )
+    )
+    (conv3): ConvBlock(
+      (conv1): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv2): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv3): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (bn2): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn3): GroupNorm(32, 32, eps=1e-05, affine=True)
+      (bn4): GroupNorm(32, 128, eps=1e-05, affine=True)
+    )
+    (conv4): ConvBlock(
+      (conv1): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn4): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (downsample): Sequential(
+        (0): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (1): ReLU(inplace=True)
+        (2): Conv2d(128, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      )
+    )
+    (m0): HourGlass(
+      (b1_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b1_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_plus_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+    )
+    (top_m_0): ConvBlock(
+      (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+      (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+    )
+    (conv_last0): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (bn_end0): GroupNorm(32, 256, eps=1e-05, affine=True)
+    (l0): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (bl0): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (al0): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (m1): HourGlass(
+      (b1_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b1_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_plus_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+    )
+    (top_m_1): ConvBlock(
+      (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+      (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+    )
+    (conv_last1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (bn_end1): GroupNorm(32, 256, eps=1e-05, affine=True)
+    (l1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (bl1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (al1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (m2): HourGlass(
+      (b1_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b1_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_plus_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+    )
+    (top_m_2): ConvBlock(
+      (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+      (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+    )
+    (conv_last2): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (bn_end2): GroupNorm(32, 256, eps=1e-05, affine=True)
+    (l2): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (bl2): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (al2): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (m3): HourGlass(
+      (b1_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b1_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b2_plus_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_1): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+      (b3_2): ConvBlock(
+        (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+        (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+        (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+        (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+    )
+    (top_m_3): ConvBlock(
+      (conv1): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv2): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (conv3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn1): GroupNorm(32, 256, eps=1e-05, affine=True)
+      (bn2): GroupNorm(32, 128, eps=1e-05, affine=True)
+      (bn3): GroupNorm(32, 64, eps=1e-05, affine=True)
+      (bn4): GroupNorm(32, 256, eps=1e-05, affine=True)
+    )
+    (conv_last3): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+    (bn_end3): GroupNorm(32, 256, eps=1e-05, affine=True)
+    (l3): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+  )
+  (view_ebd): TwoLayerMLP(
+    (net): Sequential(
+      (0): Linear(in_features=257, out_features=512, bias=True)
+      (1): BatchNorm1d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (2): ReLU(inplace=True)
+      (3): Linear(in_features=512, out_features=256, bias=True)
+      (4): BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (5): ReLU(inplace=True)
+    )
+  )
+  (decoder): SurfaceClassifier(
+    (last_op): Sigmoid()
+    (conv0): Conv1d(2048, 1024, kernel_size=(1,), stride=(1,))
+    (conv1): Conv1d(1024, 512, kernel_size=(1,), stride=(1,))
+    (conv2): Conv1d(512, 256, kernel_size=(1,), stride=(1,))
+    (conv3): Conv1d(256, 128, kernel_size=(1,), stride=(1,))
+    (conv4): Conv1d(128, 1, kernel_size=(1,), stride=(1,))
+  )
+)
+epoch 	[T][E]loss 	[T][E]consumed time 	[T][E]extra information
+0	[T]0.2154[E]0.2263	[T]7m4s[E]43s	
+1	[T]0.2110[E]0.2235	[T]6m58s[E]41s	
+2	[T]0.2092[E]0.2238	[T]6m58s[E]40s	
+3	[T]0.2085[E]0.2255	[T]6m59s[E]41s	
+4	[T]0.2084[E]0.2312	[T]6m59s[E]40s	
+5	[T]0.2079[E]0.2287	[T]6m59s[E]39s	
+6	[T]0.2077[E]0.2292	[T]7m0s[E]40s	
+7	[T]0.2077[E]0.2313	[T]6m59s[E]40s	
+8	[T]0.2075[E]0.2255	[T]6m59s[E]40s	
+9	[T]0.2071[E]0.2323	[T]6m59s[E]40s	
+10	[T]0.2070[E]0.2250	[T]7m0s[E]40s	
+11	[T]0.2066[E]0.2286	[T]6m59s[E]41s	
+12	[T]0.2069[E]0.2341	[T]6m59s[E]41s	
+13	[T]0.2069[E]0.2352	[T]6m59s[E]40s	
+14	[T]0.2064[E]0.2246	[T]7m0s[E]40s	
+15	[T]0.2065[E]0.2326	[T]6m59s[E]40s	
+16	[T]0.2062[E]0.2431	[T]6m59s[E]40s	
+17	[T]0.2061[E]0.2374	[T]6m59s[E]41s	
+18	[T]0.2062[E]0.2352	[T]6m59s[E]40s	
+19	[T]0.2063[E]0.2347	[T]6m59s[E]40s	
+20	[T]0.2062[E]0.2333	[T]6m59s[E]40s	
+21	[T]0.2059[E]0.2324	[T]6m59s[E]40s	
+22	[T]0.2060[E]0.2312	[T]6m59s[E]40s	
+23	[T]0.2060[E]0.2333	[T]6m59s[E]40s	
+24	[T]0.2056[E]0.2383	[T]6m59s[E]40s	
+25	[T]0.2058[E]0.2345	[T]6m59s[E]41s	
+26	[T]0.2057[E]0.2413	[T]6m59s[E]40s	
+27	[T]0.2056[E]0.2378	[T]6m59s[E]40s	
+28	[T]0.2059[E]0.2372	[T]6m59s[E]40s	
+29	[T]0.2055[E]0.2357	[T]6m59s[E]40s	
+30	[T]0.2055[E]0.2329	[T]6m59s[E]41s	
+31	[T]0.2057[E]0.2315	[T]6m59s[E]40s	
+32	[T]0.2055[E]0.2356	[T]6m59s[E]40s	
+33	[T]0.2055[E]0.2359	[T]6m59s[E]40s	
+34	[T]0.2054[E]0.2401	[T]6m59s[E]41s	
+35	[T]0.2051[E]0.2375	[T]6m59s[E]40s	
+36	[T]0.2052[E]0.2406	[T]6m59s[E]40s	
+37	[T]0.2053[E]0.2372	[T]6m59s[E]39s	
+38	[T]0.2052[E]0.2399	[T]6m59s[E]39s	
+39	[T]0.2052[E]0.2400	[T]6m59s[E]40s	
+40	[T]0.2054[E]0.2327	[T]6m59s[E]41s	
+41	[T]0.2054[E]0.2463	[T]6m58s[E]40s	
+42	[T]0.2050[E]0.2359	[T]6m59s[E]40s	
+43	[T]0.2050[E]0.2371	[T]6m59s[E]41s	
+44	[T]0.2050[E]0.2353	[T]6m59s[E]40s	
+45	[T]0.2050[E]0.2405	[T]7m0s[E]40s	
+46	[T]0.2050[E]0.2415	[T]6m59s[E]41s	
