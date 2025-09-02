@@ -18,7 +18,7 @@ def schedule_scanline_zigzag(smplx, bmin, sos, rom, rov, dia, stride):
     tree = cKDTree(smplx.vertices)
 
     # 8是余量
-    margin = np.linalg.norm(sos) * (8 + rov / 2)
+    margin = np.linalg.norm(sos) * (8 + rov / 2) * 10 
 
     indices, centers = [], []
     candates = np.mgrid[
@@ -105,21 +105,21 @@ def generate(device, net, data, rom, rov, dia, stride):
 
 
 if __name__ == "__main__":
-    roi = 1536
+    roi = 1024
     dia = 1
     rom = 768
     rov = 64
 
     path = "/root/leinyu/data/thuman2/ft_local/dataset grid_samples_32_24"
     gt_path = "/root/leinyu/data/thuman2/ft_local/dataset/mesh/"
-    results_path = "../ifs_results_path/0721_48_16_wheel_t1536_e1536"
+    results_path = "../ifs_results_path/0715_64_12_wheel_e10"
 
-    device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # set cuda
     net = IFSNet(None, nov=8, fusion='wheel', rov=64).to(device=device)
 
-    load_model(net, "../checkpoints/[25-07-22-19-24-34] ifs 0721_48_16_wheel_1536img refactoring version-e19.pth")
+    load_model(net, "../checkpoints/[25-07-15-10-46-59] ifs 0715_64_12_wheel refactoring version-e10.pth")
 
     dataset = ScenaroIFS(
         path=path, split="test", ratio=IFSNet.ratio(), roi=roi, nov=8, yaw_list=[0, 6, 12, 18, 24, 30, 36, 42]
@@ -137,7 +137,7 @@ if __name__ == "__main__":
             verts, faces, color = generate(device, net, data, rom, rov, dia, rov // 2)
 
             subject = data["subject"]
-            save_obj_distance_between_gt_wo_acc(dis_path, verts, gt_path, subject)
+            #save_obj_distance_between_gt_wo_acc(dis_path, verts, gt_path, subject)
 
             save_path = f"{results_path}/inference_eval_{subject}.obj"
             save_obj_mesh_with_color(save_path, verts, faces, color)

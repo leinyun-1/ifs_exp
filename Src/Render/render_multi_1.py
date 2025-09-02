@@ -10,6 +10,8 @@ import json
 import pickle as pkl
 import multiprocessing as mp
 from functools import partial
+import math
+import traceback
 os.environ["KMP_DUPLICATE_LIB_OK"]="True"
 
 def find_border(img):
@@ -130,95 +132,137 @@ def render_mv(renderer, data_path, param, num_views, data_id, save_path, res=(10
     r_color[:, 0] = 1
     renderer.scene.models[0].modify_color(r_color)
 
-    angle_mul = 360 // num_views
+    angle_mul = 360 / num_views
     for vid in tqdm(range(num_views), desc='vid'):
         renderer.scene.models[0].type[None] = 0
         dis = vmax[1] - vmin[1]
         dis *= dis_scale
         ori_vec = np.array([0, 0, dis])
-        #p = np.random.uniform(-10, 10)  # x轴方向上的视角随机振动
         p = 0
-        rotate = np.matmul(rotationY(math.radians(vid*angle_mul)), rotationX(math.radians(p)))
+        rotate = np.matmul(rotationY(math.radians(vid * angle_mul)), rotationX(math.radians(p)))
         fwd = np.matmul(rotate, ori_vec)
-        fx = res[0] * 0.5
-        fy = res[1] * 0.5
-        cx = fx
-        cy = fy
         target = median
         pos = target + fwd
-        renderer.scene.cameras[0].set(pos=pos, target=target)
-        renderer.scene.cameras[0].set_intrinsic(fx, fy, cx, cy)
-        renderer.scene.cameras[0]._init()
-        renderer.scene.single_render(0)
 
-        img = renderer.scene.cameras[0].img.to_numpy()
+        if vid == 0:
+            # 第一个视角计算相机内参
+            fx = res[0] * 0.5
+            fy = res[1] * 0.5
+            cx = fx
+            cy = fy
+            renderer.scene.cameras[0].set(pos=pos, target=target)
+            renderer.scene.cameras[0].set_intrinsic(fx, fy, cx, cy)
+            renderer.scene.cameras[0]._init()
+            renderer.scene.single_render(0)
 
-        x_min, x_max, y_min, y_max = find_border(img)
+            img = renderer.scene.cameras[0].img.to_numpy()
+            x_min, x_max, y_min, y_max = find_border(img)
 
-        x_min -= 20
-        x_max += 20
-        x_len = x_max - x_min
-        y_min = (y_max + y_min - x_len) // 2
-        scale = res[0] / x_len
-        fx = res[0] / 2 * scale
-        fy = res[1] / 2 * scale
-        cx = scale * (cx - y_min)
-        cy = scale * (cy - x_min)
+            x_min -= 20
+            x_max += 20
+            x_len = x_max - x_min
+            y_min = (y_max + y_min - x_len) // 2
+            scale = res[0] / x_len
+            fx = res[0] / 2 * scale
+            fy = res[1] / 2 * scale
+            cx = scale * (cx - y_min)
+            cy = scale * (cy - x_min)
+
+        # 复用第一个视角的内参
         renderer.scene.cameras[1].set_intrinsic(fx, fy, cx, cy)
-        renderer.scene.cameras[1].set(pos=pos,target=target)
+        renderer.scene.cameras[1].set(pos=pos, target=target)
         renderer.scene.cameras[1]._init()
-        # renderer.scene.single_render(0)
-        # camera1 = renderer.scene.cameras[1]
-        
-        # render and save img & normal
+
+        # 渲染并保存图像和其他数据
         renderer.scene.render()
         camera1 = renderer.scene.cameras[1]
         ti.imwrite(camera1.img, os.path.join(img_save_path, data_id + '_{}.png'.format(vid)))
         ti.imwrite(camera1.normal_map, os.path.join(normal_save_path, data_id + '_{}_normal.png'.format(vid)))
 
-        # save param
-        name = data_id + '_'+str(vid)
+        # 保存相机参数
+        name = data_id + '_' + str(vid)
         extrinsic = camera1.export_extrinsic()
         intrinsic = camera1.export_intrinsic()
-        param[name]={}
+        param[name] = {}
         param[name]['K'] = intrinsic[None]
-        param[name]['R'] = extrinsic[:3,:3][None]
-        param[name]['t'] = extrinsic[:,3][None]
+        param[name]['R'] = extrinsic[:3, :3][None]
+        param[name]['t'] = extrinsic[:, 3][None]
 
-        # save mask
+        # 保存掩码
         renderer.scene.models[0].type[None] = 1
         renderer.scene.render()
         camera1 = renderer.scene.cameras[1]
         mask = camera1.img.to_numpy()
         ti.imwrite(mask, os.path.join(mask_save_path, data_id + '_{}_mask.png'.format(vid)))
 
+def worker_render(data_id, data_root, save_path, res, num_views, dis_scale):
+    """单进程渲染任务，输出单独 pkl 文件"""
+    renderer = StaticRenderer()  # 每个进程自己的 Renderer
+    param_local = {}
+    pkl_path = os.path.join(save_path,'param',f"{data_id}_params.pkl")
+    if os.path.exists(pkl_path):
+        print(f"[Warning] {data_id} 已存在参数文件，跳过渲染")
+        return
+
+    try:
+        render_mv(renderer, data_root, param_local, num_views, data_id, save_path, res, False, dis_scale)
+    except Exception as e:
+        print(f"[Error] {data_id} 渲染失败: {e}")
+        traceback.print_exc()
+        return
+
+    # 保存单个 pkl 文件
+    os.makedirs(os.path.join(save_path, 'param'), exist_ok=True)
+    pkl_path = os.path.join(save_path,'param',f"{data_id}_params.pkl")  
+    with open(pkl_path, 'wb') as f:
+        pkl.dump(param_local, f)
+
+
 if __name__ == '__main__':
-    
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root", type=str, default="/root/leinyu/data/thuman2.1/Thuman2.1_norm")  # mesh数据集位置
-    parser.add_argument("--save_path", type=str, default='/root/leinyu/data/thuman2.1/Thuman2.1_norm_render')  # 渲染结果数据集位置
+    parser.add_argument("--data_root", type=str, default="/root/leinyu/data/thuman2.1/Thuman2.1_norm")
+    parser.add_argument("--save_path", type=str, default='/root/leinyu/data/thuman2.1/Thuman2.1_norm_render_1')
     parser.add_argument("--res", type=int, default=2048)
-    parser.add_argument("--views",type=int, default=80)
-    parser.add_argument("--num_workers",type=int, default=8)
+    parser.add_argument("--views", type=int, default=80)
+    parser.add_argument("--num_workers", type=int, default=8)
     args = parser.parse_args()
 
     data_root = args.data_root
     save_path = args.save_path
     res = (args.res, args.res)
     num_views = args.views
+    os.makedirs(save_path, exist_ok=True)
 
-    os.makedirs(save_path,exist_ok=True)
+    # 获取所有任务
+    data_ids = os.listdir(data_root)
 
-    render_num = 0
-    renderer = StaticRenderer()
-    param = {} #集中存储相机参数的数据结构
+    # 多进程执行
+    with mp.Pool(processes=args.num_workers) as pool:
+        list(tqdm(
+            pool.imap_unordered(
+                partial(worker_render,
+                        data_root=data_root,
+                        save_path=save_path,
+                        res=res,
+                        num_views=num_views,
+                        dis_scale=2),
+                data_ids
+            ),
+            total=len(data_ids),
+            desc="Rendering"
+        ))
 
-    for data_id in tqdm(os.listdir(data_root), desc='data_id'):
-        render_mv(renderer, data_root, param, num_views, data_id, save_path, res, False, dis_scale=2)
-        render_num += 1
-    
-    with open(save_path+'/ProjParams.pkl','wb') as f:
-        pkl.dump(param, f)
+    # 合并所有 pkl
+    param_final = {}
+    param_root = os.path.join(save_path, 'param')
+    for fname in os.listdir(param_root):
+        if fname.endswith("_params.pkl"):
+            with open(os.path.join(param_root, fname), 'rb') as f:
+                param_final.update(pkl.load(f))
 
-  
+    # 保存总文件
+    with open(os.path.join(save_path, 'ProjParams.pkl'), 'wb') as f:
+        pkl.dump(param_final, f)
+
+    print(f"✅ 渲染完成，合并 {len(param_final)} 条相机参数")

@@ -39,7 +39,8 @@ class BaseIFS(Dataset):
         if self.is_train:
             dir_subjects = os.path.join(self.dir_render, "train.txt")
         else:
-            dir_subjects = os.path.join(self.dir_render, "test.txt")
+            #dir_subjects = os.path.join(self.dir_render, "test.txt") 
+            dir_subjects = os.path.join(self.dir_render, "test1.txt") # 测试特殊样例
         self.subjects = sorted(list(set(np.loadtxt(dir_subjects, dtype=str))))
 
         self.cam_params = pickle.load(open(self.dir_params, "rb"), encoding="iso-8859-1")
@@ -112,7 +113,7 @@ class BaseIFS(Dataset):
             w, h = mask.size
 
             mask = torch.sum(torch.FloatTensor((np.array(mask).reshape((h, w, -1)))), dim=2) / 255
-            mask[mask > 1] = 1.0
+            mask[mask > 0.1] = 1.0  # 识别背景全黑区域，前景并非需要rgb之和大于255
 
             image = np.array(image, dtype=np.float32) / 255.0
             image = torch.from_numpy(image).permute(2, 0, 1) * mask.reshape(1, h, w)
