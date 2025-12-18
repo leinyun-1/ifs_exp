@@ -19,8 +19,8 @@ def make_ifs_grid_samples_dataset(dataset_path, output_path, num_centers, som, r
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     existing_subs = os.listdir(output_path)
-    subs.remove('mesh_ori')
-    subs.remove('normalize.pkl')
+    # subs.remove('mesh_ori')
+    # subs.remove('normalize.pkl')
     subs =list(set(subs) - set(existing_subs))
 
 
@@ -146,9 +146,9 @@ if __name__ == "__main__":
         "I:/yulei_MVS/yulei_MVS/THuman2/Thuman2.1_grid_samples_2", "../Thuman2.1_grid_samples_convert"
     )"""
 
-    make_ifs_grid_samples_dataset(
-        "/root/leinyu/data/thuman2/ft_local/dataset/mesh/", "../grid_samples_48_16", num_centers=25, som=16, rov=48
-    )
-    # test_grid_sample_dataset(
-    #     "../Thuman2.1_grid_samples", ["0287"], "3.npz", "../aaaa.ply"
+    # make_ifs_grid_samples_dataset(
+    #     "/home/leinyun/dataset/mesh/", "../grid_samples_64_12", num_centers=25, som=12, rov=64
     # )
+    test_grid_sample_dataset(
+        "../grid_samples_64_12", ["1111"], "30.npz", "../aaaa.ply"
+    )

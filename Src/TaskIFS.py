@@ -8,12 +8,14 @@ from LocalOnly.PathConfig import path_config
 
 ifs_config = {
     "device": 'cuda:0',
-    "epochs": 20,
-    "chkpt_milestones": [10, 15, 19],
-    "sch_epoch": [10, 15, 19],
-    "tr_batch_size": 8,
-    "batchs_in_step": 4,
-    "num_workers": 16,
+    "epochs": 15,  #20
+    "reload": False,
+    "chkpt": None,
+    "chkpt_milestones": [3, 5, 9, 14], #[10,15,19]
+    "sch_epoch": [3, 5, 9, 14], #[10,15,19]
+    "tr_batch_size": 3,
+    "batchs_in_step": 8,
+    "num_workers": 8,
     "lr": 1e-4,
     "lr_weight_decay": 0,
     "sch_gamma": 0.1,
@@ -27,7 +29,7 @@ def create_ifs_dataset(tm, is_train=False):
     from Dataset.PathedIFS import get_dataloader
     from Model.IFSNet import IFSNet
 
-    return get_dataloader(path=path_config["path_of_ifs"], is_train=is_train, roi=1024)
+    return get_dataloader(path=path_config["path_of_ifs"], is_train=is_train, roi=1024, yaw_list=[0,2,4,6,8,10,12,14], dataset_type='A+')
 
 
 def create_model_ifs(tm):
@@ -39,7 +41,7 @@ def create_model_ifs(tm):
 
 def task():
     config = deepcopy(ifs_config)
-    config.update({"abstract": "0721_48_16_wheel_1536img", "best_performance": 0.01})
+    config.update({"abstract": "1212_64_12_wheel_1024img", "best_performance": 0.01})
     return {
         "name": "ifs",
         "create_dataloader": create_ifs_dataset,

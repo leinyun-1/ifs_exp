@@ -12,6 +12,7 @@ import multiprocessing as mp
 from functools import partial
 import math
 import traceback
+import random
 os.environ["KMP_DUPLICATE_LIB_OK"]="True"
 
 def find_border(img):
@@ -95,6 +96,19 @@ class StaticRenderer:
             light = t3.Light(dir, color=[1.0, 1.0, 1.0])
             self.scene.add_light(light)
 
+def set_lights(scene, off_count=2):
+    """在已有 6 盏灯中随机关闭 off_count 盏，其余方向/强度保持初始化时的值。"""
+    total_lights = len(scene.lights)
+    off_count = min(off_count, total_lights)
+    off_idxs = set(random.sample(range(total_lights), off_count))
+
+    for idx, light in enumerate(scene.lights):
+        if idx in off_idxs:
+            light.color[None] = ti.Vector([0.0, 0.0, 0.0])
+        else:
+            # 保持原有方向与强度
+            light.color[None] = ti.Vector([1, 1, 1])
+
 def render_mv(renderer, data_path, param, num_views, data_id, save_path, res=(1024, 1024), enable_gpu=False, dis_scale=1):
     img_path = os.path.join(data_path, data_id,  'material_0.jpeg')
     obj_path = os.path.join(data_path, data_id, data_id + '.obj')
@@ -103,11 +117,11 @@ def render_mv(renderer, data_path, param, num_views, data_id, save_path, res=(10
     img_save_path = os.path.join(save_path, 'image')
     mask_save_path = os.path.join(save_path, 'mask')
     normal_save_path = os.path.join(save_path, 'normal')
-    parameter_save_path = os.path.join(save_path, 'ProjParams.pkl')
+    #parameter_save_path = os.path.join(save_path, 'ProjParams.pkl')
     if not os.path.exists(img_save_path):
         os.makedirs(img_save_path)
-    if not os.path.exists(parameter_save_path):
-        os.makedirs(parameter_save_path)
+    # if not os.path.exists(parameter_save_path):
+    #     os.makedirs(parameter_save_path)
     if not os.path.exists(mask_save_path):
         os.makedirs(mask_save_path)
     if not os.path.exists(normal_save_path):
@@ -132,19 +146,29 @@ def render_mv(renderer, data_path, param, num_views, data_id, save_path, res=(10
     r_color[:, 0] = 1
     renderer.scene.models[0].modify_color(r_color)
 
+    # 三种光照组合
+    light_setups = [
+        [[0.0, 0.0, 1.0]],
+        [[0.2, 0.2, 1.0]],
+        [[-0.2, 0.1, 1.0]],
+    ]
+    max_lights = max(len(ls) for ls in light_setups)
+
     angle_mul = 360 / num_views
     for vid in tqdm(range(num_views), desc='vid'):
         renderer.scene.models[0].type[None] = 0
         dis = vmax[1] - vmin[1]
         dis *= dis_scale
         ori_vec = np.array([0, 0, dis])
-        p = 0
-        rotate = np.matmul(rotationY(math.radians(vid * angle_mul)), rotationX(math.radians(p)))
+        # 俯仰抖动
+        pitch = random.uniform(-30.0, 10.0)
+        rotate = np.matmul(rotationY(math.radians(vid * angle_mul)), rotationX(math.radians(pitch)))
         fwd = np.matmul(rotate, ori_vec)
         target = median
         pos = target + fwd
 
         if vid == 0:
+            set_lights(renderer.scene)
             # 第一个视角计算相机内参
             fx = res[0] * 0.5
             fy = res[1] * 0.5
@@ -173,27 +197,31 @@ def render_mv(renderer, data_path, param, num_views, data_id, save_path, res=(10
         renderer.scene.cameras[1].set(pos=pos, target=target)
         renderer.scene.cameras[1]._init()
 
-        # 渲染并保存图像和其他数据
-        renderer.scene.render()
-        camera1 = renderer.scene.cameras[1]
-        ti.imwrite(camera1.img, os.path.join(img_save_path, data_id + '_{}.png'.format(vid)))
-        ti.imwrite(camera1.normal_map, os.path.join(normal_save_path, data_id + '_{}_normal.png'.format(vid)))
+        # 渲染并保存图像和其他数据（每个视角三种光照）
+        for lid, dirs in enumerate(light_setups):
+            set_lights(renderer.scene)
+            renderer.scene.render()
+            camera1 = renderer.scene.cameras[1]
+            ti.imwrite(camera1.img, os.path.join(img_save_path, f"{data_id}_{vid}_{lid}.png"))
+            ti.imwrite(camera1.normal_map, os.path.join(normal_save_path, f"{data_id}_{vid}_{lid}_normal.png"))
 
-        # 保存相机参数
-        name = data_id + '_' + str(vid)
-        extrinsic = camera1.export_extrinsic()
-        intrinsic = camera1.export_intrinsic()
-        param[name] = {}
-        param[name]['K'] = intrinsic[None]
-        param[name]['R'] = extrinsic[:3, :3][None]
-        param[name]['t'] = extrinsic[:, 3][None]
+            # 保存相机参数（按视角记录一次即可）
+            if lid == 0:
+                name = data_id + '_' + str(vid)
+                extrinsic = camera1.export_extrinsic()
+                intrinsic = camera1.export_intrinsic()
+                param[name] = {}
+                param[name]['K'] = intrinsic[None]
+                param[name]['R'] = extrinsic[:3, :3][None]
+                param[name]['t'] = extrinsic[:, 3][None]
 
-        # 保存掩码
-        renderer.scene.models[0].type[None] = 1
-        renderer.scene.render()
-        camera1 = renderer.scene.cameras[1]
-        mask = camera1.img.to_numpy()
-        ti.imwrite(mask, os.path.join(mask_save_path, data_id + '_{}_mask.png'.format(vid)))
+            # 保存掩码
+            renderer.scene.models[0].type[None] = 1
+            renderer.scene.render()
+            camera1 = renderer.scene.cameras[1]
+            mask = camera1.img.to_numpy()
+            ti.imwrite(mask, os.path.join(mask_save_path, f"{data_id}_{vid}_{lid}_mask.png"))
+            renderer.scene.models[0].type[None] = 0
 
 def worker_render(data_id, data_root, save_path, res, num_views, dis_scale):
     """单进程渲染任务，输出单独 pkl 文件"""
@@ -221,11 +249,11 @@ def worker_render(data_id, data_root, save_path, res, num_views, dis_scale):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_root", type=str, default="/root/leinyu/data/thuman2.1/Thuman2.1_norm")
-    parser.add_argument("--save_path", type=str, default='/root/leinyu/data/thuman2.1/Thuman2.1_norm_render_1')
+    parser.add_argument("--data_root", type=str, default="/home/leinyun/winshare_1/dataset/Thuman2.1_norm")
+    parser.add_argument("--save_path", type=str, default='/home/leinyun/dataset/Thuman2.1_render_1129')
     parser.add_argument("--res", type=int, default=2048)
-    parser.add_argument("--views", type=int, default=80)
-    parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--views", type=int, default=16)
+    parser.add_argument("--num_workers", type=int, default=4)
     args = parser.parse_args()
 
     data_root = args.data_root

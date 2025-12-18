@@ -7,8 +7,8 @@ from Dataset.BaseIFS import BaseIFS
 
 
 class PathedIFS(BaseIFS):
-    def __init__(self, path, split, roi, nov, yaw_list):
-        super(PathedIFS, self).__init__(path, split, roi, nov, yaw_list)
+    def __init__(self, path, split, roi, nov, yaw_list, dataset_type):
+        super(PathedIFS, self).__init__(path, split, roi, nov, yaw_list, dataset_type)
 
         self.num_slides = np.loadtxt(os.path.join(self.dir_samples, "num_slides.txt"), dtype=int)
         self.som = np.loadtxt(os.path.join(self.dir_samples, "som.txt"), dtype=int)
@@ -98,8 +98,8 @@ def ifs_pack(device, batch):
     return batch
 
 
-def get_dataloader(path, is_train=False, roi=1024, nov=8, yaw_list=[0, 6, 12, 18, 24, 30, 36, 42]):
+def get_dataloader(path, is_train=False, roi=1024, nov=8, yaw_list=[0, 6, 12, 18, 24, 30, 36, 42],dataset_type='A+'):
     split = "train" if is_train else "test"
-    dataset = PathedIFS(path=path, split=split, roi=roi, nov=nov, yaw_list=yaw_list)
+    dataset = PathedIFS(path=path, split=split, roi=roi, nov=nov, yaw_list=yaw_list,dataset_type=dataset_type)
     print(f"Loaded {split} data: {len(dataset)}")
     return dataset

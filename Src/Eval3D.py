@@ -15,10 +15,19 @@ from Model.IFSNet import IFSNet
 
 
 def schedule_scanline_zigzag(smplx, bmin, sos, rom, rov, dia, stride):
+    '''
+    如何在训练体素密度固定的情况下，实现推理更高密度体素。比如训练768，推理1536.
+    限制: 窗口体素大小固定，窗口内体素分辨率固定。
+    因此不能直接从1536中切出连续的64个体素，而是需要每间隔一个切出64个体素。
+    类似于空洞卷积。
+    ' ' ' '
+     ' ' ' '
+    ''''''''
+    '''
     tree = cKDTree(smplx.vertices)
 
     # 8是余量
-    margin = np.linalg.norm(sos) * (8 + rov / 2) * 10 
+    margin = np.linalg.norm(sos) * (8 + rov / 2) #* 10 
 
     indices, centers = [], []
     candates = np.mgrid[
@@ -109,20 +118,24 @@ if __name__ == "__main__":
     dia = 1
     rom = 768
     rov = 64
+    
+    PATH = ['/home/leinyun/dataset/Thuman2.1_render_1129','/home/leinyun/winshare_1/code/experiment/output/ifs_input/render']
+    YAW_LIST = [[0, 2, 4, 6, 8, 10, 12, 14],[0, 6, 12, 18, 24, 30, 36, 42]]
+    A = 1
 
-    path = "/root/leinyu/data/thuman2/ft_local/dataset grid_samples_32_24"
+    path = PATH[A] + ' ' + 'grid_samples_32_24'
     gt_path = "/root/leinyu/data/thuman2/ft_local/dataset/mesh/"
-    results_path = "../ifs_results_path/0715_64_12_wheel_e10"
+    results_path = "../ifs_results_path/1212_64_12_wheel_1024img_e9/"
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     # set cuda
-    net = IFSNet(None, nov=8, fusion='wheel', rov=64).to(device=device)
+    net = IFSNet(None, nov=8, fusion='wheel', rov=rov).to(device=device)
 
-    load_model(net, "../checkpoints/[25-07-15-10-46-59] ifs 0715_64_12_wheel refactoring version-e10.pth")
+    load_model(net, "../checkpoints/[25-12-12-17-48-04] ifs 1212_64_12_wheel_1024img refactoring version-e9.pth")
 
     dataset = ScenaroIFS(
-        path=path, split="test", ratio=IFSNet.ratio(), roi=roi, nov=8, yaw_list=[0, 6, 12, 18, 24, 30, 36, 42]
+        path=path, split="test", ratio=IFSNet.ratio(), roi=roi, nov=8, yaw_list=YAW_LIST[A], dataset_type="A"
     )
 
     os.makedirs(results_path, exist_ok=True)

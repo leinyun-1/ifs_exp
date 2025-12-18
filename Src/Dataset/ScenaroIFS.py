@@ -6,8 +6,8 @@ from Dataset.BaseIFS import BaseIFS
 
 
 class ScenaroIFS(BaseIFS):
-    def __init__(self, path, split, ratio, roi, nov, yaw_list):
-        super(ScenaroIFS, self).__init__(path, split, roi, nov, yaw_list)
+    def __init__(self, path, split, ratio, roi, nov, yaw_list, dataset_type):
+        super(ScenaroIFS, self).__init__(path, split, roi, nov, yaw_list, dataset_type)
 
         self.ratio = ratio
 
@@ -77,5 +77,6 @@ class ScenaroIFS(BaseIFS):
 
         result = {"sid": sid, "subject": subject, "bmin": bmin, "bmax": bmax, "smplx": smplx}
         result.update(self._load_renders(subject, ScenaroIFS.Cropper(self, self.ratio), yid=yid))
+        #result.update(self._load_renders(subject, None, yid=yid))
 
         return result

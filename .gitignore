@@ -1,0 +1,9 @@
+*.mp4
+*.obj
+/grid_samples_*_*
+/tmp 
+/logs
+/checkpoints
+/images
+__pycache__/
+*.pyc 
