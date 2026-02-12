@@ -319,8 +319,8 @@ class BaseIFS(Dataset):
             intrinsic, render = self._scale_render(intrinsic, render, self.roi)
 
             #HW参考系在右上角。
-            # intrinsic[1, :] *= -1.0
-            # intrinsic[1, 2] += self.roi
+            intrinsic[1, :] *= -1.0
+            intrinsic[1, 2] += self.roi
 
             if cropper != None :
                 bbox = cropper(intrinsic, extrinsic, subject, render)

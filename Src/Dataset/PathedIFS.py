@@ -17,6 +17,20 @@ class PathedIFS(BaseIFS):
         self.patch_size = self.roi // self.som * 2
         self.patch_size = (self.patch_size // 32) * 32  # 
 
+    @staticmethod
+    def compute_weights_from_sdf(sdf, threshold=0.01, w_min=1.0, w_max=10.0):
+        """
+        根据 sdf 计算连续权重：
+        |sdf|=threshold 时权重 w_min，|sdf|=0 时权重 w_max，线性插值。
+        """
+        abs_sdf = np.abs(sdf)
+        weights = np.full_like(abs_sdf, w_min, dtype=np.float32)
+        mask = abs_sdf < threshold
+        if np.any(mask):
+            weights[mask] = w_min + (threshold - abs_sdf[mask]) / threshold * (w_max - w_min)
+        return weights
+
+
     def _load_samples(self, subject, pid):
         file_name = os.path.join(self.dir_samples, subject, str(pid) + ".npz")
         data = np.load(file_name)
@@ -30,8 +44,7 @@ class PathedIFS(BaseIFS):
         sdf[sdf < -0.2] = -0.2
         # center = (np.max(samples, axis=0) + np.min(samples, axis=0)) / 2.0
 
-        weights = np.ones(occs.shape[0])
-        weights[abs(sdf) < 0.005] = 8
+        weights = PathedIFS.compute_weights_from_sdf(sdf, threshold=0.01, w_min=1.0, w_max=10.0)
 
         return {
             "samples": torch.from_numpy(samples.T),

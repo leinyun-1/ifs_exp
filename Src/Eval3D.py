@@ -119,23 +119,33 @@ if __name__ == "__main__":
     rom = 768
     rov = 64
     
-    PATH = ['/home/leinyun/dataset/Thuman2.1_render_1129','/home/leinyun/winshare_1/code/experiment/output/ifs_input/render']
-    YAW_LIST = [[0, 2, 4, 6, 8, 10, 12, 14],[0, 6, 12, 18, 24, 30, 36, 42]]
-    A = 1
+    PATH = ['/home/leinyun/dataset/Thuman2.1_render_1129',
+            '/home/leinyun/winshare_1/code/experiment/output/ifs_input/render']
+    YAW_LIST = [[0, 2, 4, 6, 8, 10, 12, 14],
+                [0, 6, 12, 18, 24, 30, 36, 42],
+                [0, 1, 4, 7, 8, 11, 12, 14]]
+    CKPT_PATH = ["../checkpoints/[25-12-12-17-48-04] ifs 1212_64_12_wheel_1024img refactoring version-e14.pth",
+                 "/home/leinyun/winshare_1/ckpt/ifs/[25-07-15-10-46-59] ifs 0715_64_12_wheel refactoring version-e19.pth",
+                 "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/[25-07-14-19-04-47] pifu_0714_1 ifs refactoring version refactoring version-e199.pth",
+                 "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/[25-07-21-21-13-32] ifs 0721_64_12_wheel_1536img refactoring version-e19.pth",
+                 "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/0711_32_24_wheel refactoring version-e19.pth",
+                 "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/0711_32_24_avg_var_e19.pth" ] 
+    FUSION_LIST = ['wheel', 'avg_var']
+    A = 0
 
     path = PATH[A] + ' ' + 'grid_samples_32_24'
-    gt_path = "/root/leinyu/data/thuman2/ft_local/dataset/mesh/"
-    results_path = "../ifs_results_path/1212_64_12_wheel_1024img_e9/"
+    gt_path = "/home/leinyun/dataset/mesh/"
+    results_path = "../ifs_results_path/0715_64_12_wheel_e19_onTH1129dataset/"
 
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # set cuda
     net = IFSNet(None, nov=8, fusion='wheel', rov=rov).to(device=device)
 
-    load_model(net, "../checkpoints/[25-12-12-17-48-04] ifs 1212_64_12_wheel_1024img refactoring version-e9.pth")
+    load_model(net, CKPT_PATH[1])
 
     dataset = ScenaroIFS(
-        path=path, split="test", ratio=IFSNet.ratio(), roi=roi, nov=8, yaw_list=YAW_LIST[A], dataset_type="A"
+        path=path, split="test1", ratio=IFSNet.ratio(), roi=roi, nov=8, yaw_list=YAW_LIST[A], dataset_type="A+"
     )
 
     os.makedirs(results_path, exist_ok=True)
@@ -150,7 +160,7 @@ if __name__ == "__main__":
             verts, faces, color = generate(device, net, data, rom, rov, dia, rov // 2)
 
             subject = data["subject"]
-            #save_obj_distance_between_gt_wo_acc(dis_path, verts, gt_path, subject)
+            save_obj_distance_between_gt_wo_acc(dis_path, verts, gt_path, subject)
 
             save_path = f"{results_path}/inference_eval_{subject}.obj"
             save_obj_mesh_with_color(save_path, verts, faces, color)
