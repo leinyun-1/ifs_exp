@@ -120,7 +120,8 @@ if __name__ == "__main__":
     rov = 64
     
     PATH = ['/home/leinyun/dataset/Thuman2.1_render_1129',
-            '/home/leinyun/winshare_1/code/experiment/output/ifs_input/render']
+            '/home/leinyun/winshare_1/code/experiment/output/ifs_input/render',
+            '/home/leinyun/dataset/0418']
     YAW_LIST = [[0, 2, 4, 6, 8, 10, 12, 14],
                 [0, 6, 12, 18, 24, 30, 36, 42],
                 [0, 1, 4, 7, 8, 11, 12, 14]]
@@ -129,23 +130,24 @@ if __name__ == "__main__":
                  "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/[25-07-14-19-04-47] pifu_0714_1 ifs refactoring version refactoring version-e199.pth",
                  "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/[25-07-21-21-13-32] ifs 0721_64_12_wheel_1536img refactoring version-e19.pth",
                  "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/0711_32_24_wheel refactoring version-e19.pth",
-                 "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/0711_32_24_avg_var_e19.pth" ] 
+                 "/home/leinyun/winshare_1/ckpt/ifs/checkpoints_remain/0711_32_24_avg_var_e19.pth",
+                 "/home/leinyun/code/ifs_exp/checkpoints/[26-02-27-23-24-52] ifs 0227_64_12_wo3dcnn refactoring version-e9.pth" ] 
     FUSION_LIST = ['wheel', 'avg_var']
     A = 0
 
-    path = PATH[A] + ' ' + 'grid_samples_32_24'
+    path = PATH[2] + ' ' + 'grid_samples_32_24'
     gt_path = "/home/leinyun/dataset/mesh/"
-    results_path = "../ifs_results_path/0715_64_12_wheel_e19_onTH1129dataset/"
+    results_path = "../ifs_results_path/0227_64_12_wo3dcnn"
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # set cuda
-    net = IFSNet(None, nov=8, fusion='wheel', rov=rov).to(device=device)
+    net = IFSNet(None, nov=8, fusion='wheel', rov=rov, decoder_type='mlp').to(device=device)
 
-    load_model(net, CKPT_PATH[1])
+    load_model(net, CKPT_PATH[-1])
 
     dataset = ScenaroIFS(
-        path=path, split="test1", ratio=IFSNet.ratio(), roi=roi, nov=8, yaw_list=YAW_LIST[A], dataset_type="A+"
+        path=path, split="test1", ratio=IFSNet.ratio(), roi=roi, nov=8, yaw_list=YAW_LIST[1], dataset_type="A"
     )
 
     os.makedirs(results_path, exist_ok=True)

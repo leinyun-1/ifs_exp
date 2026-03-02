@@ -139,6 +139,8 @@ class IFSNet(ModelInvoker):
         rov=48,
         frozen_encoder=False,
         fusion='wheel',
+        decoder_type="costreg3d",
+        mlp_channels=None,
         **kwargs,
     ):
         super().__init__(tm, metric, pack, selection)
@@ -146,11 +148,39 @@ class IFSNet(ModelInvoker):
         self.nov = nov
         self.rov = rov
         self.frozen_encoder = frozen_encoder
-        self.fusion_type = fusion 
+        self.fusion_type = fusion
+        self.decoder_type = decoder_type
+        self.fusion_num_levels = 10
 
         self.encoder = Encoder(in_channel=3, channels=[32, 48, 64, 96, 128], out_channels=[32, 24, 16, 8])
-        self.decoder = CostRegNet(self.encoder.out_channel * 2, 128)
+
+        fusion_out_channel = self._get_fusion_out_channel(self.encoder.out_channel)
+        if self.decoder_type in ("costreg3d", "3dcnn"):
+            self.decoder = CostRegNet(fusion_out_channel, 128)
+        elif self.decoder_type in ("mlp", "surface"):
+            if mlp_channels is None:
+                mlp_channels = [fusion_out_channel, 512, 256, 128, 1]
+            else:
+                mlp_channels = list(mlp_channels)
+                if len(mlp_channels) < 2:
+                    raise ValueError("mlp_channels must have at least two elements.")
+                if mlp_channels[0] != fusion_out_channel:
+                    raise ValueError(
+                        f"mlp_channels[0] ({mlp_channels[0]}) must match fusion output channel ({fusion_out_channel})."
+                    )
+            self.decoder = SurfaceClassifier(mlp_channels, last_op=nn.Sigmoid())
+        else:
+            raise ValueError(f"Unsupported decoder_type: {self.decoder_type}")
+
         init_net(self)
+
+    def _get_fusion_out_channel(self, encoder_out_channel):
+        if self.fusion_type == "avg_var":
+            return encoder_out_channel * 2
+        if self.fusion_type == "wheel":
+            return self.nov * self.fusion_num_levels + encoder_out_channel
+        # fallback for custom fusion: keep previous default assumption
+        return encoder_out_channel * 2
 
     @classmethod
     def ratio(cls):
@@ -196,7 +226,7 @@ class IFSNet(ModelInvoker):
         wheel_feat[:, 1:, :, :] = sfeature[:, :-1, :, :].clone()
         wheel_feat[:, 0, :, :] = sfeature[:, V - 1, :, :].clone()
 
-        num_levels = 10
+        num_levels = self.fusion_num_levels
 
         feat0 = sfeature * wheel_feat  # B*V*C*N
         feat0 = feat0.reshape(B, V, C // num_levels, num_levels, N)
@@ -232,6 +262,9 @@ class IFSNet(ModelInvoker):
         return torch.cat([torch.mean(sfeature,dim=1),torch.var(sfeature,dim=1)],dim=1)
 
     def decode(self, ffeature, rov):
+        if self.decoder_type in ("mlp", "surface"):
+            return self.decoder(ffeature)
+
         B, C, sps = ffeature.shape
 
         if rov == -1:

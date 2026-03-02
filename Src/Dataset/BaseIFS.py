@@ -91,13 +91,13 @@ class BaseIFS(Dataset):
 
         # 数据增强开关，可通过 set_augmentations 进行动态调整
         self.aug_cfg = {
-            "enable": True,
+            "enable": False,
             "color_jitter": {"p": 0.3, "brightness": 0.2, "contrast": 0.2, "saturation": 0.2},
             "gaussian_blur": {"p": 0.2, "radius": 1.0},
             "gaussian_noise": {"p": 0.3, "std": 0.01},
             "random_mask_drop": {"p": 0.2, "max_ratio": 0.2},
             "geom_jitter": {
-                "enable": True,
+                "enable": False,
                 "pad_ratio": 0.1,
                 "pad_p": 0.3,
                 "scale_min": 0.9,

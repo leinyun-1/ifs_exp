@@ -8,8 +8,8 @@ from Dataset.BaseIFS import BaseIFS
 
 
 class PifuIFS(BaseIFS):
-    def __init__(self, path, split, roi, nov, yaw_list):
-        super(PifuIFS, self).__init__(path, split, roi, nov, yaw_list)
+    def __init__(self, path, split, roi, nov, yaw_list, dataset_type):
+        super(PifuIFS, self).__init__(path, split, roi, nov, yaw_list, dataset_type)
 
         self.num_slides = 1
 
@@ -76,10 +76,10 @@ class PifuIFS(BaseIFS):
             "bmin": np.array([-1,-1,-1]),
             "bmax": np.array([1,1,1])
         })
-        smplx = self._get_smplx(subject)
+        #smplx = self._get_smplx(subject)
         subject = self._get_subject(sid)
         result.update({
-            "smplx": smplx,
+            #"smplx": smplx,
             "subject": subject
         })
         return result
@@ -92,8 +92,8 @@ def ifs_pack(device, batch):
     return batch
 
 
-def get_dataloader(path, is_train=False, roi=1024, nov=8, yaw_list=[0, 6, 12, 18, 24, 30, 36, 42]):
+def get_dataloader(path, is_train=False, roi=1024, nov=8, yaw_list=[0, 6, 12, 18, 24, 30, 36, 42], dataset_type="A"):
     split = "train" if is_train else "test"
-    dataset = PifuIFS(path=path, split=split, roi=roi, nov=nov, yaw_list=yaw_list)
+    dataset = PifuIFS(path=path, split=split, roi=roi, nov=nov, yaw_list=yaw_list, dataset_type=dataset_type)
     print(f"Loaded {split} data: {len(dataset)}")
     return dataset

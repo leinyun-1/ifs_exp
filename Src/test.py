@@ -194,6 +194,60 @@ def test_dataset_py():
         img = img.permute(1,2,0).numpy()
         Image.fromarray((img*255).astype(np.uint8)).save(outdir + '/' + f"dataset_debug_{idx}.png")
 
+def test_box_crop():
+    """
+    读取一个样本，按 PathedIFS 的 crop 逻辑计算 8 视图 bbox，
+    将 bbox 画在 loadsize(roi) 分辨率图上并横向拼接，保存到项目根目录 crop.png。
+    """
+    import os
+    from PIL import ImageDraw
+    from LocalOnly.PathConfig import path_config
+
+    ds = PathedIFS(
+        path=path_config["path_of_ifs"],
+        split="train",
+        roi=1024,
+        nov=8,
+        yaw_list=[0, 6, 12, 18, 24, 30, 36, 42],
+        dataset_type="A",
+    )
+
+    index = 0
+    sid, pid, yid = ds._get_ids(index)
+    subject = ds._get_subject(sid)
+    _, center = ds._load_samples(subject, pid)
+    cropper = PathedIFS.Cropper(ds.som, center, ds.patch_size)
+
+    view_ids = [
+        ds.yaw_list[(yid + len(ds.yaw_list) // ds.nov * offset) % len(ds.yaw_list)]
+        for offset in range(ds.nov)
+    ]
+
+    vis_images = []
+    for vid in view_ids:
+        image, mask = ds._load_images(subject, vid)
+        intrinsic, extrinsic = ds._load_projection(subject, vid)
+
+        render = [image, mask]
+        intrinsic, render = ds._scale_render(intrinsic, render, ds.roi)
+
+        intrinsic[1, :] *= -1.0
+        intrinsic[1, 2] += ds.roi
+
+        bbox = cropper(intrinsic, extrinsic, subject, render)
+        x0, y0, x1, y1 = [int(v) for v in bbox]
+
+        img_draw = ImageDraw.Draw(render[0])
+        img_draw.rectangle((x0, y0, x1, y1), outline=(255, 0, 0), width=4)
+        img_draw.text((10, 10), f"{subject}_{vid}", fill=(255, 0, 0))
+        vis_images.append(np.array(render[0], dtype=np.uint8))
+
+    merged = np.concatenate(vis_images, axis=1)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    save_path = os.path.join(project_root, "crop.png")
+    Image.fromarray(merged).save(save_path)
+    print(f"[OK] saved: {save_path}")
+
 
 def test_data_set_file(render_dir='/home/leinyun/dataset/Thuman2.1_render_1129'):
     """
@@ -325,10 +379,11 @@ if __name__ == "__main__":
     OUTPUT_DIR = Path("./tmp/ifs_augmented")
     SAMPLES = 4
 
-    make_train_txt()
+    #make_train_txt()
     #visualize(rom=512, rov=64, stride=32, dia=2)
     #run_augment(IMAGE_PATH, MASK_PATH, OUTPUT_DIR, SAMPLES)
     #test_dataset_py()
     #test_data_set_file()
     #test_mesh_bbox('/home/leinyun/dataset/mesh',workers=4)
+    test_box_crop()
     

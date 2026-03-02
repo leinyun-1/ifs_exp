@@ -7,3 +7,5 @@
 /images
 __pycache__/
 *.pyc 
+*.ply
+*.png

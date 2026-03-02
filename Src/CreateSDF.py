@@ -102,16 +102,50 @@ def convert_grid_samples(dataset_path, output_path):
 
 def test_grid_sample_dataset(dataset_path, subs, voxel, output_path):
     for sub in subs:
-        path = os.path.join(dataset_path, sub, voxel)
+        path = os.path.join(dataset_path, sub)
+        voxes = os.listdir(path)[:20]
+        samples = []
+        occs = []
+        for vox in voxes:
+            vox_path = os.path.join(path,vox)
 
-        start = time.time()
-        data = np.load(path, allow_pickle=True)
-        print("used time: ", time.time() - start)
 
-        samples = data["samples"]
-        occs = data["occs"]
+            start = time.time()
+            data = np.load(vox_path, allow_pickle=True)
+            print("used time: ", time.time() - start)
+
+            samples.append(data["samples"])
+            occs.append(data["occs"])
+        
+        samples = np.concatenate(samples)
+        occs = np.concatenate(occs)
 
         save_samples_truncted_prob(output_path, samples, occs)
+
+def test_pifu_sample(subject,sigma=0.02,num_sample_inout=8192,output_path='../bbbb.ply'):
+    file_name = os.path.join('/home/leinyun/dataset/mesh', subject, subject+'.obj')
+    mesh = trimesh.load(file_name)
+
+    radius_list = [sigma / 3, sigma, sigma * 2]
+    surface_points = np.zeros((6 * num_sample_inout, 3))
+    sample_points = np.zeros((6 * num_sample_inout, 3))
+    for i in range(3):
+        d = 2 * num_sample_inout
+        surface_points[i * d:(i + 1) * d, :], _ = trimesh.sample.sample_surface(mesh,2 * num_sample_inout)
+        sample_points[i * d:(i + 1) * d, :] = surface_points[i * d:(i + 1) * d, :] + np.random.normal(
+            scale=radius_list[i], size=(2 * num_sample_inout, 3))
+
+    # add random points within image space
+    b_min = np.array([-1,-1,-1])
+    b_max = np.array([1,1,1])
+    length = b_max - b_min
+    random_points = np.random.rand(num_sample_inout, 3) * length + b_min
+    sample_points = np.concatenate([sample_points, random_points], 0)
+    np.random.shuffle(sample_points)
+    sample_points = sample_points[:8192]
+    occs = mesh.contains(sample_points) #这句话卡住了
+    save_samples_truncted_prob(output_path, sample_points, occs)
+
 
 
 def save_samples_truncted_prob(fname, points, prob):
@@ -140,6 +174,8 @@ def save_samples_truncted_prob(fname, points, prob):
     )
 
 
+
+
 if __name__ == "__main__":
     # 转化原数据集，转化完之后，删除该函数代码，不做保留
     """convert_grid_samples(
@@ -149,6 +185,7 @@ if __name__ == "__main__":
     # make_ifs_grid_samples_dataset(
     #     "/home/leinyun/dataset/mesh/", "../grid_samples_64_12", num_centers=25, som=12, rov=64
     # )
-    test_grid_sample_dataset(
-        "../grid_samples_64_12", ["1111"], "30.npz", "../aaaa.ply"
-    )
+    # test_grid_sample_dataset(
+    #     "../grid_samples_64_12", ["0421"], "30.npz", "../aaaa.ply"
+    # )
+    test_pifu_sample('0421')
