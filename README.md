@@ -1,3 +1,4 @@
+![pipe](./assets/pipeline.png)
 # IFSProject
 拷贝LocalOnly\PathConfig.Template.py为LocalOnly\PathConfig.py，并修改对应目录
 
@@ -13,3 +14,6 @@
 - taichi==0.7.21
 
 安装taichi相关包的顺序必须是 taichi_glsl,taichi_three,taichi
+
+![result](./assets/result.png)
+从左至右：GT,mv-PIFu,RoGSplat,SeSDF,DeepMultiCap,ours
